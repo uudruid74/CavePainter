@@ -1,0 +1,26 @@
+{
+  "canvas": {
+    "width": 600,
+    "height": 400,
+    "bg": [0.05, 0.1, 0.25]
+  },
+  "commands": [
+    {
+      "op": "gradient",
+      "fg": [0.0, 0.6, 1.0],
+      "bg": [0.05, 0.05, 0.2],
+      "style": 0
+    },
+    {
+      "op": "text",
+      "text": "Gradient Sweep",
+      "x": 80,
+      "y": 180,
+      "size": 36,
+      "r": 0.0,
+      "g": 0.6,
+      "b": 1.0
+    }
+  ],
+  "output": "01-gradient-sweep.png"
+}

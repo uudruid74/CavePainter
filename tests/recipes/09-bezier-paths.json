@@ -1,0 +1,9 @@
+{
+  "canvas": {"width": 500, "height": 300, "bg": [0.08, 0.08, 0.2]},
+  "commands": [
+    {"op": "text", "text": "Bezier Demo", "x": 30, "y": 40, "size": 28, "r": 1.0, "g": 1.0, "b": 1.0, "font": "Sans-serif Bold"},
+    {"op": "bezier", "name": "wave", "strokes": [{"type": "moveto", "x": 30, "y": 180}, {"type": "cubicto", "x0": 100, "y0": 60, "x1": 200, "y1": 260, "x2": 300, "y2": 120}, {"type": "cubicto", "x0": 350, "y0": 60, "x1": 400, "y1": 200, "x2": 470, "y2": 180}], "stroke_params": {"width": 4.0, "color": [1.0, 0.2, 0.2]}},
+    {"op": "bezier", "name": "filled", "strokes": [{"type": "moveto", "x": 350, "y": 50}, {"type": "lineto", "x0": 460, "y0": 50}, {"type": "lineto", "x0": 460, "y0": 120}, {"type": "close"}], "stroke_params": {"width": 2.0, "color": [0.2, 1.0, 0.2]}, "fill": true}
+  ],
+  "output": "bezier-demo.png"
+}

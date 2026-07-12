@@ -1,0 +1,10 @@
+{
+  "canvas": {"width": 600, "height": 300, "bg": [0.08, 0.08, 0.2]},
+  "commands": [
+    {"op": "text", "text": "Sans-serif", "x": 30, "y": 50, "size": 36, "r": 1, "g": 1, "b": 1, "font": "Sans-serif Bold"},
+    {"op": "text", "text": "Monospace", "x": 30, "y": 110, "size": 28, "r": 0.3, "g": 1, "b": 0.5, "font": "Monospace"},
+    {"op": "text", "text": "DejaVu Sans", "x": 30, "y": 170, "size": 28, "r": 0.5, "g": 0.8, "b": 1.0, "font": "DejaVu Sans Bold"},
+    {"op": "text", "text": "Default Font", "x": 30, "y": 230, "size": 28, "r": 1.0, "g": 0.6, "b": 0.2}
+  ],
+  "output": "font-test.png"
+}

@@ -1,0 +1,26 @@
+{
+  "canvas": {
+    "width": 400,
+    "height": 300,
+    "bg": [0.95, 0.9, 0.9]
+  },
+  "commands": [
+    {
+      "op": "gradient",
+      "fg": [0.0, 0.4, 0.8],
+      "bg": [0.0, 0.3, 0.3],
+      "style": 0
+    },
+    {
+      "op": "text",
+      "text": "Session B",
+      "x": 100,
+      "y": 150,
+      "size": 28,
+      "r": 0.1,
+      "g": 0.1,
+      "b": 0.2
+    }
+  ],
+  "output": "06-session-isolation-b.png"
+}

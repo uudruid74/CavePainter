@@ -1,0 +1,32 @@
+{
+  "canvas": {
+    "width": 500,
+    "height": 500,
+    "bg": [0.0, 0.0, 0.0]
+  },
+  "commands": [
+    {
+      "op": "fill",
+      "color": [0.5, 0.0, 0.0]
+    },
+    {
+      "op": "layer",
+      "name": "Middle",
+      "opacity": 50.0
+    },
+    {
+      "op": "fill",
+      "color": [0.0, 0.5, 0.0]
+    },
+    {
+      "op": "layer",
+      "name": "Top",
+      "opacity": 30.0
+    },
+    {
+      "op": "fill",
+      "color": [0.0, 0.0, 0.5]
+    }
+  ],
+  "output": "02-layer-stack.png"
+}

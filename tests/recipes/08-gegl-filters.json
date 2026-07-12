@@ -1,0 +1,11 @@
+{
+  "canvas": {"width": 500, "height": 400, "bg": [0.1, 0.1, 0.2]},
+  "commands": [
+    {"op": "text", "text": "GEGL Demo", "x": 30, "y": 40, "size": 32, "r": 1, "g": 1, "b": 0.5, "font": "Sans-serif Bold"},
+    {"op": "text", "text": "Blurred", "x": 30, "y": 100, "size": 36, "r": 0.2, "g": 1.0, "b": 0.6, "font": "Monospace"},
+    {"op": "text", "text": "After Glow", "x": 30, "y": 200, "size": 48, "r": 1.0, "g": 0.6, "b": 0.0, "font": "Sans-serif Bold"},
+    {"op": "bezier", "name": "line1", "strokes": [{"type": "moveto", "x": 30, "y": 150}, {"type": "lineto", "x0": 470, "y0": 150}], "stroke_params": {"width": 2.0, "color": [0.2, 0.8, 1.0]}},
+    {"label": "soft-glow", "op": "gegl", "filter": "gegl:softglow", "params": {"glow-radius": 15.0, "brightness": 0.6, "sharpness": 0.3}}
+  ],
+  "output": "gegl-demo.png"
+}
