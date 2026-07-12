@@ -78,9 +78,9 @@ Three AI agents drew **self-portraits** using Cave Painter — no diffusion mode
 
 | Agent | What they drew | Style |
 |---|---|---|
-| 🐹 **Gopher** | Caped hero gopher with goggles, belt, and buck teeth | Vector cartoon via bezier paths |
-| 🤖 **Neo** | Code DNA helix with syntax tokens | Character-based pixel art |
-| ❄️ **Wintermute** | Hexagonal ice crystal with architectural labels | Geometric character grid |
+| 🐹 **Gopher** | [Caped hero gopher with goggles, belt, and buck teeth](samples/gopher-self-portrait.png) | Vector cartoon via bezier paths |
+| 🤖 **Neo** | [Code DNA helix with syntax tokens](samples/neo-self-portrait.png) | Character-based pixel art |
+| ❄️ **Wintermute** | [Hexagonal ice crystal with architectural labels](samples/wintermute-self-portrait.png) | Geometric character grid |
 
 **Key finding:** Three AIs, zero generative models, three completely different self-conceptions. Each agent chose its own visual language, font, and composition — expressed through the same drawing primitives.
 
