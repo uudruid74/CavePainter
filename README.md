@@ -127,7 +127,21 @@ create_canvas(400, 300)       # → img_001
 draw_ellipse(img_001, 200, 150, 100, 80, [0.8, 0.2, 0.2])
 add_text(img_001, "Hello!", x=120, y=220, size=24, r=1.0, g=1.0, b=1.0)
 export(img_001, "hello.png")
-export_done(img_001, "hello.png")  # releases GIMP
+
+# Or paint with actual GIMP brushes:
+new_brush(image=img_001, brush_name="Charcoal 01", size=40, hardness=0.3)
+  # → brush_0001
+
+paint_stroke(image=img_001, brush="brush_0001",
+  strokes=[{"type":"moveto","x":50,"y":150},
+           {"type":"cubicto","x0":100,"y0":50,"x1":200,"y1":50,"x2":250,"y2":150}],
+  color_r=0.8, color_g=0.2, color_b=0.1)
+  # → painted with Charcoal 01, size 40, hardness 0.3
+
+paint_dab(image=img_001, brush="brush_0001", x=300, y=100, color_r=0.2, color_g=0.5, color_b=0.8)
+  # → single brush dab at (300, 100)
+
+export_done(img_001, "painting.png")  # saves and releases GIMP
 ```
 
 ---
