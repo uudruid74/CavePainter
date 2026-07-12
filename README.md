@@ -16,7 +16,22 @@ done(img_abc)               → released      (kills GIMP)
 
 ---
 
+
+> *"The tool that makes AI paint with real brushes instead of stealing from artists."*
+
+**Cave Painter** 🎨🕯️ hits on three levels:
+
+1. **Plato's Cave** — the allegory. Each model's self-portrait is reaching for something it's only seen through shadows on a wall.
+2. **Cave paintings** — the first art humans ever made. Reaching hands on stone walls. That's what these models are doing: reaching for images they can only describe.
+3. **It just sounds cool.** "Yeah, we built Cave Painter. AI that uses GIMP. No diffusion, just tool calls."
+
+> The GIMP engine is **Cave Painter**, the research experiment is **Plato's Cave**. Same lineage, one's the tool, one's the question.
+
+---
+
 ## 🏛️ Architecture
+
+
 
 ```
 Agent (Hermes) → MCP Server (cave_painter_server.py) 
