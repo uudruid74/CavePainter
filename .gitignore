@@ -13,3 +13,6 @@ cave-painter.sublime-*
 gimp_daemon_v*.py
 mcp_server_v*.py
 engine_v*.py
+
+!samples/
+!samples/*.png
