@@ -84,6 +84,8 @@ Three AI agents drew **self-portraits** using Cave Painter — no diffusion mode
 
 **Key finding:** Three AIs, zero generative models, three completely different self-conceptions. Each agent chose its own visual language, font, and composition — expressed through the same drawing primitives.
 
+> **Bias note:** Neo and Wintermute independently chose *identical* gradient backgrounds (`fg=[0,0.5,0.8], bg=[0.08,0.05,0.15]`). At the time, Wintermute was running on DeepSeek (fallback model) rather than his primary model — meaning both were on the same provider. This suggests model-level bias can seep into supposedly independent creative decisions. Future iterations with different model stacks may produce radically different results. 🕯️
+
 ---
 
 ## 📜 Philosophy
