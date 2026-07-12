@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.swp
+*.swo
+*~
+.DS_Store
+tests/output/
+*.png
+/tmp/
+gimp_daemon_*.py
+mcp_server_v*.py
