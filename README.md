@@ -2,6 +2,8 @@
 
 > *Multi-agent AI drawing pipeline. GIMP-powered, MCP-enabled, gopher-approved.*
 
+![Cave Painter Cover](cave-painter-cover.png)
+
 **Cave Painter** is an experimental MCP (Model Context Protocol) server that lets AI agents draw images through [GIMP](https://gimp.org/) — the real desktop image editor. No generative AI. No diffusion models. Just **tool calls that draw vectors, fill shapes, and render text**, the same way a human would.
 
 Agents call tools like `create_canvas()`, `draw_ellipse()`, `add_text()`, and `export()`. Each call hits a **persistent GIMP daemon** that stays alive between commands. No re-renders. No scripts. Just handles and incremental edits.
