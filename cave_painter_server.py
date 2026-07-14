@@ -119,7 +119,14 @@ def tool_done(**kw):
     _cleanup(s); return {"ok":True,"released":True}
 
 def tool_status(**kw):
-    return {"ok":True,"sessions":len(_sessions),"handles":[f"img_{s}" for s in _sessions]}
+    version = "unknown"
+    try:
+        for line in open(DAEMON):
+            if line.startswith("VERSION"):
+                version = line.split('"')[1]
+                break
+    except: pass
+    return {"ok":True,"sessions":len(_sessions),"handles":[f"img_{s}" for s in _sessions],"version":version}
 
 def tool_list_brushes(**kw):
     s = _sid(kw.get("image","")); return ({"error":"Need image"} if not s else _send_cmd(s, {"cmd":"list_brushes"}))

@@ -135,7 +135,7 @@ def execute(recipe_path, session_id=None):
                              Gimp.LayerMode.NORMAL)
         img.insert_layer(lay, None, -1)
         Gimp.context_set_foreground(color(*cvs["bg"]))
-        lay.fill(Gimp.FillType.FOREGROUND)
+        lay.edit_fill(Gimp.FillType.FOREGROUND)
         active = lay
 
         # PDB shortcut
@@ -149,7 +149,7 @@ def execute(recipe_path, session_id=None):
             try:
                 if op == "fill":
                     Gimp.context_set_foreground(color(*cmd["color"]))
-                    active.fill(Gimp.FillType.FOREGROUND)
+                    active.edit_fill(Gimp.FillType.FOREGROUND)
 
                 elif op == "gradient":
                     Gimp.context_set_foreground(color(*cmd["fg"]))

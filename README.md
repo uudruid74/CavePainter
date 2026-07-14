@@ -35,26 +35,51 @@ done(img_abc)               → released      (kills GIMP)
 
 ## 🏛️ Architecture
 
-
+Cave Painter uses a **hexagonal (ports-and-adapters)** architecture — the drawing domain is backend-agnostic, with GIMP as one adapter implementation.
 
 ```
-Agent (Hermes) → MCP Server (cave_painter_server.py) 
-                       ↓ file commands 
-                 GIMP Daemon (cave_painter_daemon.py) 
-                       ↓ GIMP 3.x Python API
-                 Persistent GIMP process
+┌─────────────────────────────────────────────────────┐
+│                    Agent (Hermes)                    │
+│    Gopher · Neo · Wintermute · Zephyr (live)         │
+└─────────────────┬─────────────────┬─────────────────┘
+                  │ MCP             │ Prometheus (socket)
+                  ▼                 ▼
+┌─────────────────────────────────────────────────────┐
+│              cave_painter/mcp_server.py               │
+│         (MCP tool registry — agent-facing API)        │
+└─────────────────┬───────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────┐
+│         cave_painter/domain/ — DrawingEngine          │
+│    Protocol (backend-agnostic) · Value types          │
+└─────────────────┬───────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────┐
+│          cave_painter/adapters/gimp/                  │
+│    GimpEngine (socket IPC) · Daemon · Discovery       │
+└─────────────────┬───────────────────────────────────┘
+                  │ GIMP 3.x Python API
+                  ▼
+┌─────────────────────────────────────────────────────┐
+│              Persistent GIMP process                  │
+│         (stays alive between tool calls)              │
+└─────────────────────────────────────────────────────┘
 ```
 
 ### Key files
 
 | File | Purpose |
 |---|---|
-| `cave_painter_server.py` | MCP tool registry — what agents call |
-| `src/cave_painter_daemon.py` | Persistent GIMP command processor |
+| `cave_painter/mcp_server.py` | MCP tool registry — hexagonal version |
+| `cave_painter/domain/engine.py` | DrawingEngine Protocol (backend-agnostic) |
+| `cave_painter/domain/types.py` | Color, PathSegment, BrushSpec value types |
+| `cave_painter/adapters/gimp/client.py` | GimpEngine with Unix socket IPC |
+| `cave_painter/adapters/gimp/daemon.py` | GIMP-side command processor |
+| `cave_painter/adapters/gimp/discovery.py` | Multi-platform GIMP binary finder |
+| `src/cave_painter_daemon.py` | Original persistent daemon (v1) |
 | `src/engine.py` | Original batch GIMP engine (single-shot mode) |
-| `scripts/gopher-draw.sh` | Shell wrapper (legacy) |
-| `skills/characters/` | Saved drawing recipes (JSON) |
-| `skills/creative/svg-to-cave-painter/` | SVG-to-recipe conversion skill |
 
 ### MCP Tools
 
@@ -69,6 +94,8 @@ Agent (Hermes) → MCP Server (cave_painter_server.py)
 | `export_done(img, path)` | Saves PNG + releases GIMP |
 | `done(img)` | Kills GIMP without saving |
 | `status()` | Lists active sessions |
+| `draw_bezier(img, segments, ...)` | Bezier paths (conic, cubic, line) |
+| `draw_gegl(img, filter, ...)` | GEGL filters (blur, dropshadow, glow) |
 
 ---
 
@@ -85,6 +112,56 @@ Three AI agents drew **self-portraits** using Cave Painter — no diffusion mode
 **Key finding:** Three AIs, zero generative models, three completely different self-conceptions. Each agent chose its own visual language, font, and composition — expressed through the same drawing primitives.
 
 > **Bias note:** Neo and Wintermute independently chose *identical* gradient backgrounds (`fg=[0,0.5,0.8], bg=[0.08,0.05,0.15]`). At the time, Wintermute was running on DeepSeek (fallback model) rather than his primary model — meaning both were on the same provider. This suggests model-level bias can seep into supposedly independent creative decisions. Future iterations with different model stacks may produce radically different results. 🕯️
+
+---
+
+## 🔥 Prometheus — Real-Time GIMP Orchestration
+
+> *"I watch you paint. I learn from every brushstroke."*
+
+**Prometheus** is the real-time return path that turns Cave Painter into a **live collaboration** between human and AI. While the MCP server lets agents *drive* GIMP, Prometheus lets agents *watch* the human use GIMP — and learn.
+
+### How it works
+
+| Step | What happens |
+|------|-------------|
+| 1 | Human paints in GIMP, clicks **Prometheus Snapshot** |
+| 2 | GTK widget introspection reads dialog parameters (no screen scraping) |
+| 3 | Canvas diff exported as bounding-rect PNG |
+| 4 | Layer stack + undo data packed as JSON handoff |
+| 5 | Unix domain socket at `/tmp/prometheus/<session>.sock` delivers to MCP |
+| 6 | Agent polls `prometheus_get_handoff()` between turns |
+| 7 | Agent sees canvas via **native vision** (DeepSeek V4-Flash) |
+| 8 | Agent writes skills from observed techniques |
+
+> **One demonstration = one reusable skill, forever.**
+
+### Prometheus Files
+
+| File | Purpose |
+|---|---|
+| `prometheus_mcp_server.py` | MCP server: `request_session`, `get_handoff`, `close_session` |
+| `src/prometheus/plugin.py` | GIMP 3.x plugin: `prometheus-snapshot`, `prometheus-record` |
+| `src/prometheus/handoff.py` | Handoff JSON payload builder |
+| `src/prometheus/widget_reader.py` | GTK dialog introspection — reads SpinButton, ComboBox, Slider values |
+| `src/prometheus/canvas_exporter.py` | Full canvas + bounding-rect diff PNG export |
+| `src/prometheus/undo_monitor.py` | Undo stack tracking — identifies last operation by name |
+
+### GTK Widget Introspection
+
+Prometheus reads dialog parameters **natively** via PyGObject — no screen scraping, no OCR, no auxiliary vision tool:
+
+| Widget | Method |
+|--------|--------|
+| `Gtk.SpinButton` | `.get_value()` |
+| `Gtk.ComboBoxText` | `.get_active_text()` |
+| `Gtk.Scale` | `.get_value()` |
+| `Gtk.Adjustment` | `.get_value()` |
+| `Gtk.ColorButton` | `.get_rgba()` |
+
+### Live Agent Integration
+
+Prometheus events arrive in the agent session as **Continuation Feeds** — the agent sees the snapshot as mid-turn sensory input with no context re-init. Every technique the human demonstrates becomes a persistent Cave Painter skill.
 
 ---
 
@@ -121,28 +198,27 @@ hermes mcp add cave-painter --command python3 \
 
 ### Quick test
 
+Run these 7 tool calls against a live Cave Painter MCP server. They produce [`samples/quick-test-v16.png`](samples/quick-test-v16.png) — a red ellipse with white "Hello!" text, a green brush stroke, and a yellow dab on a dark blue canvas.
+
+![Quick Test Output](samples/quick-test-v16.png)
+
 ```python
-# From a Hermes agent:
-create_canvas(400, 300)       # → img_001
-draw_ellipse(img_001, 200, 150, 100, 80, [0.8, 0.2, 0.2])
-add_text(img_001, "Hello!", x=120, y=220, size=24, r=1.0, g=1.0, b=1.0)
-export(img_001, "hello.png")
+# From a Hermes agent with the cave-painter MCP server registered:
+img = create_canvas(400, 300)                    # → img_cp-abc123
+draw_ellipse(img, 200, 150, 100, 80, [0.8,0.2,0.2])  # Red oval
+add_text(img, "Hello!", x=120, y=220, size=24, r=1,g=1,b=1)  # White text
 
-# Or paint with actual GIMP brushes:
-new_brush(image=img_001, brush_name="Charcoal 01", size=40, hardness=0.3)
-  # → brush_0001
-
-paint_stroke(image=img_001, brush="brush_0001",
+# Paint with actual GIMP brushes:
+brush = new_brush(img, brush_name="2. Hardness 100", size=40, hardness=1.0)  # → brush_0002
+paint_stroke(img, brush,
   strokes=[{"type":"moveto","x":50,"y":150},
            {"type":"cubicto","x0":100,"y0":50,"x1":200,"y1":50,"x2":250,"y2":150}],
-  color_r=0.8, color_g=0.2, color_b=0.1)
-  # → painted with Charcoal 01, size 40, hardness 0.3
-
-paint_dab(image=img_001, brush="brush_0001", x=300, y=100, color_r=0.2, color_g=0.5, color_b=0.8)
-  # → single brush dab at (300, 100)
-
-export_done(img_001, "painting.png")  # saves and releases GIMP
+  color_r=0.2, color_g=0.8, color_b=0.2)          # Green brush stroke (visible on red)
+paint_dab(img, brush, x=300, y=100, color_r=0.8, color_g=0.8, color_b=0.0)  # Yellow dab
+export_done(img, "samples/quick-test.png")         # Saves PNG, releases GIMP
 ```
+
+> 🐹 **Try it yourself:** Copy those exact calls into a Hermes session with the cave-painter MCP server loaded. Every call hits a real GIMP daemon — no scripting, no PIL, just tool calls that draw real pixels.
 
 ---
 
@@ -160,12 +236,14 @@ Cave Painter taught us what works (and what doesn't) in GIMP 3.x's Python bindin
 
 ## 🗺️ Roadmap
 
+- [x] **Hexagonal restructure** — ports-and-adapters architecture (July 2026)
+- [x] **Prometheus return path** — real-time GIMP orchestration with GTK introspection (July 2026)
+- [x] **GEGL filters** — Gaussian blur, dropshadow, glow via persistent daemon
+- [x] **Font introspection** — list + select from 1333 GIMP fonts by name
+- [x] **Bezier paths** — cubic/conic/line strokes with VectorLayer
 - [ ] **GIMP Skill Library** — ingest drawing tutorials as MCP-ready recipes
 - [ ] **Layer compositing** — full layer stack + blend modes
-- [ ] **GEGL filters** — Gaussian blur, dropshadow, bloom via persistent daemon
-- [ ] **Font introspection** — list available GIMP fonts
 - [ ] **Batch shapes** — draw N shapes in one call (speed optimization)
-- [ ] **Self-portrait v2** — re-run Plato's Cave with skill library
 
 ---
 

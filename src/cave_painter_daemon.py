@@ -9,8 +9,9 @@ Brush system:
   paint_stroke(img, brush_id, strokes, color)       → ok (path stroked with brush)
   paint_dab(img, brush_id, x, y, color)             → ok (single dab)
   drop_brush(brush_id)                               → released
-  list_brushes()                                     → [all 58 GIMP brush names]
+  list_brushes()                                     -> [all 58 GIMP brush names]
 """
+VERSION = "20260712.16"
 import json, os, sys, uuid, time, traceback
 from gi.repository import Gimp, Gegl, GLib, Gio
 from pathlib import Path
@@ -50,8 +51,29 @@ def _deselect():
     if img:
         Gimp.Image.select_rectangle(img, Gimp.ChannelOps.REPLACE, 0, 0, 0, 0)
 
+def _top_pos():
+    """Return the insertion position that places a layer at the top of the stack."""
+    return len(img.get_layers()) if img else 0
+
+def _set_fg(c):
+    """Set foreground color. Must be called BEFORE _apply_brush() AND right before paint ops.
+    
+    CRITICAL DISCOVERY: Gimp.context_set_brush() in GIMP 3.x SNAPSHOTS the
+    current foreground color into the brush context. Calling _set_fg() AFTER
+    _apply_brush() means the brush captures the STALE foreground. The fix:
+    call _set_fg() BEFORE _apply_brush() so the brush snapshots the right color,
+    then again AFTER as a safety net.
+    """
+    Gimp.context_set_foreground(c)
+
 def _apply_brush(br):
-    """Apply a brush preset to GIMP context."""
+    """Apply a brush preset to GIMP context.
+    
+    CRITICAL: Gimp.context_set_brush() in GIMP 3.x SNAPSHOTS the current
+    foreground color into the brush context for subsequent paint operations.
+    Therefore _set_fg() must be called BEFORE _apply_brush() to capture
+    the correct color. The after-call is a safety net.
+    """
     if not br:
         return
     
@@ -133,10 +155,13 @@ def cmd_paint_stroke(seq, args):
     else:
         br = {"brush_name": "2. Hardness 100", "size": 20.0}
     
-    _apply_brush(br)
-    
     col = args.get("color", [0.0, 0.0, 0.0])
-    Gimp.context_set_foreground(color(col))
+    
+    # Set foreground BEFORE brush — context_set_brush() snapshots foreground!
+    col_obj = color(col)
+    _set_fg(col_obj)
+    
+    _apply_brush(br)
     
     strokes = args.get("strokes", [])
     if not strokes:
@@ -162,15 +187,18 @@ def cmd_paint_stroke(seq, args):
         elif st == "close" and sid is not None:
             po.stroke_close(sid)
     
+    # Insert path into image — required for edit_stroke_item to find it
+    img.insert_path(po, None, 0)
+    
+    # Re-set foreground after brush as safety net
+    _set_fg(col_obj)
+    
     # Stroke with brush
     d = _drawable(args)
     if d:
         d.edit_stroke_item(po)
     else:
-        temp = Gimp.Layer.new(img, "_bp", img.get_width(), img.get_height(),
-                              Gimp.ImageType.RGBA_IMAGE, 1.0, Gimp.LayerMode.NORMAL)
-        img.insert_layer(temp, None, 0)
-        temp.edit_stroke_item(po)
+        img.get_layers()[0].edit_stroke_item(po)
     
     res(seq, ok=True, strokes=len(strokes))
 
@@ -194,30 +222,33 @@ def cmd_paint_dab(seq, args):
     else:
         br = {"brush_name": "2. Hardness 100", "size": 20.0}
     
+    col = args.get("color", [0.0, 0.0, 0.0])
+    
+    # Set foreground BEFORE brush — context_set_brush() snapshots foreground!
+    col_obj = color(col)
+    _set_fg(col_obj)
+    
     _apply_brush(br)
     
     if args.get("size") is not None:
         Gimp.context_set_brush_size(float(args["size"]))
-    
-    col = args.get("color", [0.0, 0.0, 0.0])
-    Gimp.context_set_foreground(color(col))
-    
+
     x, y = float(args["x"]), float(args["y"])
+    size = args.get("size", 20.0)
     
-    # Create a tiny path for the dab
-    pname = f"dab_{uuid.uuid4().hex[:6]}"
-    po = Gimp.Path.new(img, pname)
-    sid = po.bezier_stroke_new_moveto(x, y)
-    po.bezier_stroke_lineto(sid, x + 0.1, y)  # tiny line to stroke
+    # Use a circular selection + edit_fill for a solid dab
+    _deselect()
+    Gimp.Image.select_ellipse(img, Gimp.ChannelOps.REPLACE, x - size/2, y - size/2, size, size)
+    
+    # Re-set foreground after brush+selection as safety net
+    _set_fg(col_obj)
     
     d = _drawable(args)
     if d:
-        d.edit_stroke_item(po)
+        d.edit_fill(Gimp.FillType.FOREGROUND)
     else:
-        temp = Gimp.Layer.new(img, "_dab", img.get_width(), img.get_height(),
-                              Gimp.ImageType.RGBA_IMAGE, 1.0, Gimp.LayerMode.NORMAL)
-        img.insert_layer(temp, None, 0)
-        temp.edit_stroke_item(po)
+        img.get_layers()[0].edit_fill(Gimp.FillType.FOREGROUND)
+    _deselect()
     
     res(seq, ok=True, x=x, y=y)
 
@@ -242,7 +273,7 @@ def cmd_create(seq, args):
     H = args.get("height", 600)
     bg = args.get("bg", [0.05, 0.1, 0.2])
     img = Gimp.Image.new(W, H, Gimp.ImageType.RGB_IMAGE)
-    bl = Gimp.Layer.new(img, "Bg", W, H, Gimp.ImageType.RGBA_IMAGE, 1.0, Gimp.LayerMode.NORMAL)
+    bl = Gimp.Layer.new(img, "Bg", W, H, Gimp.ImageType.RGBA_IMAGE, 100.0, Gimp.LayerMode.NORMAL)
     img.insert_layer(bl, None, 0)
     Gimp.context_set_foreground(color(bg))
     bl.fill(Gimp.FillType.FOREGROUND)
@@ -254,8 +285,8 @@ def cmd_new_layer(seq, args):
     if not img: res(seq, error="No image"); return
     name = args.get("name", f"Layer_{len(layers)}")
     W, H = img.get_width(), img.get_height()
-    ly = Gimp.Layer.new(img, name, W, H, Gimp.ImageType.RGBA_IMAGE, 1.0, Gimp.LayerMode.NORMAL)
-    img.insert_layer(ly, None, 0)
+    ly = Gimp.Layer.new(img, name, W, H, Gimp.ImageType.RGBA_IMAGE, 100.0, Gimp.LayerMode.NORMAL)
+    img.insert_layer(ly, None, _top_pos())
     layers.append(ly)
     res(seq, ok=True, handle=h(), layer_index=len(layers)-1, name=name)
 
@@ -268,12 +299,10 @@ def cmd_ellipse(seq, args):
     Gimp.Image.select_ellipse(img, Gimp.ChannelOps.REPLACE, cx-rx, cy-ry, rx*2, ry*2)
     Gimp.context_set_foreground(color(fill))
     d = _drawable(args)
-    if d: d.fill(Gimp.FillType.FOREGROUND)
+    if d: d.edit_fill(Gimp.FillType.FOREGROUND)
     else:
-        temp = Gimp.Layer.new(img, "_tmp", img.get_width(), img.get_height(),
-                              Gimp.ImageType.RGBA_IMAGE, 1.0, Gimp.LayerMode.NORMAL)
-        img.insert_layer(temp, None, 0)
-        temp.fill(Gimp.FillType.FOREGROUND)
+        # Fill on Bg layer (index 0) — edit_fill respects selection
+        img.get_layers()[0].edit_fill(Gimp.FillType.FOREGROUND)
     _deselect()
     res(seq, ok=True)
 
@@ -286,12 +315,10 @@ def cmd_rect(seq, args):
     Gimp.Image.select_rectangle(img, Gimp.ChannelOps.REPLACE, x, y, w, h)
     Gimp.context_set_foreground(color(fill))
     d = _drawable(args)
-    if d: d.fill(Gimp.FillType.FOREGROUND)
+    if d: d.edit_fill(Gimp.FillType.FOREGROUND)
     else:
-        temp = Gimp.Layer.new(img, "_tmp", img.get_width(), img.get_height(),
-                              Gimp.ImageType.RGBA_IMAGE, 1.0, Gimp.LayerMode.NORMAL)
-        img.insert_layer(temp, None, 0)
-        temp.fill(Gimp.FillType.FOREGROUND)
+        # Fill on Bg layer (index 0) — edit_fill respects selection
+        img.get_layers()[0].edit_fill(Gimp.FillType.FOREGROUND)
     _deselect()
     res(seq, ok=True)
 
@@ -304,19 +331,32 @@ def cmd_text(seq, args):
     col = args.get("color", [1.0, 1.0, 1.0])
     font_name = args.get("font", "")
     Gimp.context_set_foreground(color(col))
-    font = font_name if font_name else Gimp.context_get_font()
-    tx = Gimp.Layer.new(img, "_txt", img.get_width(), img.get_height(),
-                         Gimp.ImageType.RGBA_IMAGE, 1.0, Gimp.LayerMode.NORMAL)
-    img.insert_layer(tx, None, 0)
+    # Resolve font: if name given, look it up; otherwise use current context font
+    if font_name:
+        font_obj = Gimp.context_get_font()  # fallback
+        for f in Gimp.fonts_get_list(""):
+            if f.get_name() == font_name:
+                font_obj = f
+                break
+    else:
+        font_obj = Gimp.context_get_font()
     try:
-        Gimp.text_font(img, None, float(x), float(y), text, -1, True, float(size), font)
+        # text_font creates and inserts text at position 0 (bottom) when parent=None.
+        # Reorder to top so Bg stays at index 0 for draw operations.
+        tl = Gimp.text_font(img, None, float(x), float(y), text, -1, True, float(size), font_obj)
+        if tl is not None:
+            layers.append(tl)
+            # Reorder text layer to top of stack (above Bg and any other layers)
+            all_layers = img.get_layers()
+            top_pos = len(all_layers) - 1
+            if all_layers[0] == tl:  # only reorder if it's at the bottom
+                img.reorder_item(tl, None, top_pos)
+        else:
+            res(seq, error="text_font returned None")
+            return
     except Exception as e:
         res(seq, error=f"text: {e}")
         return
-    idx = args.get("layer", -1)
-    if idx >= 0 and idx < len(layers):
-        try: tx.merge_to(layers[idx])
-        except: layers.append(tx)
     res(seq, ok=True)
 
 def cmd_bezier(seq, args):
@@ -343,7 +383,7 @@ def cmd_bezier(seq, args):
         elif st == "close" and sid is not None:
             po.stroke_close(sid)
     vl = Gimp.VectorLayer.new(img, po)
-    img.insert_layer(vl, None, -1)
+    img.insert_layer(vl, None, _top_pos())
     vl.set_stroke_width(float(sw))
     vl.set_enable_stroke(True)
     vl.set_stroke_color(color(col))
@@ -359,8 +399,8 @@ def cmd_gradient(seq, args):
     bg = args.get("bg", [0.08, 0.05, 0.15])
     style = args.get("style", 0)
     gl = Gimp.Layer.new(img, "_grad", img.get_width(), img.get_height(),
-                         Gimp.ImageType.RGBA_IMAGE, 1.0, Gimp.LayerMode.NORMAL)
-    img.insert_layer(gl, None, 0)
+                         Gimp.ImageType.RGBA_IMAGE, 100.0, Gimp.LayerMode.NORMAL)
+    img.insert_layer(gl, None, _top_pos())
     Gimp.context_set_foreground(color(fg))
     Gimp.context_set_background(color(bg))
     if style == 1:
