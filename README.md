@@ -103,6 +103,13 @@ Cave Painter uses a **hexagonal (ports-and-adapters)** architecture — the draw
 
 Three AI agents drew **self-portraits** using Cave Painter — no diffusion models, just raw GIMP tool calls through an MCP server. The results were viewed by a fourth AI (vision model) through a one-way "cave wall" — seeing only the final images, never the code.
 
+<style>
+.agenticon { text-align: center; font-size: 1.3em; }
+.agent-gopher { background-color: #44CC66; }
+.agent-neo { background-color: #5C6BC0; }
+.agent-wintermute { background-color: #88DDFF; }
+</style>
+
 <table>
 <tr>
   <th>Agent</th>
@@ -112,19 +119,19 @@ Three AI agents drew **self-portraits** using Cave Painter — no diffusion mode
 </tr>
 <tr>
   <td><strong>Gopher</strong></td>
-  <td style="background-color: #44CC66; text-align: center; font-size: 1.3em;">🐹</td>
+  <td class="agenticon agent-gopher">🐹</td>
   <td><a href="samples/gopher-self-portrait.png">Caped hero gopher with goggles, belt, and buck teeth</a></td>
   <td>Vector cartoon via bezier paths</td>
 </tr>
 <tr>
   <td><strong>Neo</strong></td>
-  <td style="background-color: #5C6BC0; text-align: center; font-size: 1.3em;">🧬</td>
+  <td class="agenticon agent-neo">🧬</td>
   <td><a href="samples/neo-self-portrait.png">Code DNA helix with syntax tokens</a></td>
   <td>Character-based pixel art</td>
 </tr>
 <tr>
   <td><strong>Wintermute</strong></td>
-  <td style="background-color: #88DDFF; text-align: center; font-size: 1.3em;">❄️</td>
+  <td class="agenticon agent-wintermute">❄️</td>
   <td><a href="samples/wintermute-self-portrait.png">Hexagonal ice crystal with architectural labels</a></td>
   <td>Geometric character grid</td>
 </tr>
