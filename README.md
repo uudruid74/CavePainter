@@ -2,8 +2,6 @@
 
 > *Multi-agent AI drawing pipeline. GIMP-powered, MCP-enabled, gopher-approved.*
 
-![Cave Painter Cover](cave-painter-cover.png)
-
 **Cave Painter** is an experimental MCP (Model Context Protocol) server that lets AI agents draw images through [GIMP](https://gimp.org/) — the real desktop image editor. No generative AI. No diffusion models. Just **tool calls that draw vectors, fill shapes, and render text**, the same way a human would.
 
 Agents call tools like `create_canvas()`, `draw_ellipse()`, `add_text()`, and `export()`. Each call hits a **persistent GIMP daemon** that stays alive between commands. No re-renders. No scripts. Just handles and incremental edits.
@@ -105,11 +103,32 @@ Cave Painter uses a **hexagonal (ports-and-adapters)** architecture — the draw
 
 Three AI agents drew **self-portraits** using Cave Painter — no diffusion models, just raw GIMP tool calls through an MCP server. The results were viewed by a fourth AI (vision model) through a one-way "cave wall" — seeing only the final images, never the code.
 
-| Agent | What they drew | Style |
-|---|---|---|
-| 🐹 **Gopher** | [Caped hero gopher with goggles, belt, and buck teeth](samples/gopher-self-portrait.png) | Vector cartoon via bezier paths |
-| 🤖 **Neo** | [Code DNA helix with syntax tokens](samples/neo-self-portrait.png) | Character-based pixel art |
-| ❄️ **Wintermute** | [Hexagonal ice crystal with architectural labels](samples/wintermute-self-portrait.png) | Geometric character grid |
+<table>
+<tr>
+  <th>Agent</th>
+  <th>Icon</th>
+  <th>What they drew</th>
+  <th>Style</th>
+</tr>
+<tr>
+  <td><strong>Gopher</strong></td>
+  <td style="background-color: #44CC66; text-align: center; font-size: 1.3em;">🐹</td>
+  <td><a href="samples/gopher-self-portrait.png">Caped hero gopher with goggles, belt, and buck teeth</a></td>
+  <td>Vector cartoon via bezier paths</td>
+</tr>
+<tr>
+  <td><strong>Neo</strong></td>
+  <td style="background-color: #5C6BC0; text-align: center; font-size: 1.3em;">🧬</td>
+  <td><a href="samples/neo-self-portrait.png">Code DNA helix with syntax tokens</a></td>
+  <td>Character-based pixel art</td>
+</tr>
+<tr>
+  <td><strong>Wintermute</strong></td>
+  <td style="background-color: #88DDFF; text-align: center; font-size: 1.3em;">❄️</td>
+  <td><a href="samples/wintermute-self-portrait.png">Hexagonal ice crystal with architectural labels</a></td>
+  <td>Geometric character grid</td>
+</tr>
+</table>
 
 **Key finding:** Three AIs, zero generative models, three completely different self-conceptions. Each agent chose its own visual language, font, and composition — expressed through the same drawing primitives.
 

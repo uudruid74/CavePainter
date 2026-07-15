@@ -149,10 +149,12 @@ def cmd_paint_stroke(seq, args):
     br = _resolve_brush(args.get("brush", {}))
     if br is None:
         return {"error": f"Brush not found: {args.get('brush')}"}
-    _apply_brush(br)
+    Gimp.context_push()
     Gimp.context_set_foreground(color(args.get("color", [0.0, 0.0, 0.0])))
+    _apply_brush(br)
     strokes = args.get("strokes", [])
     if not strokes:
+        Gimp.context_pop()
         return {"error": "No strokes"}
     po = _build_path(f"brush_{uuid.uuid4().hex[:6]}", strokes)
     d = _drawable(args)
@@ -163,6 +165,8 @@ def cmd_paint_stroke(seq, args):
                               Gimp.ImageType.RGBA_IMAGE, 100.0, Gimp.LayerMode.NORMAL)
         img.insert_layer(temp, None, 0)
         temp.edit_stroke_item(po)
+    Gimp.context_pop()
+    Gimp.displays_flush()
     return {"ok": True, "strokes": len(strokes)}
 
 
@@ -173,10 +177,11 @@ def cmd_paint_dab(seq, args):
     br = _resolve_brush(args.get("brush", {}))
     if br is None:
         return {"error": f"Brush not found: {args.get('brush')}"}
+    Gimp.context_push()
+    Gimp.context_set_foreground(color(args.get("color", [0.0, 0.0, 0.0])))
     _apply_brush(br)
     if args.get("size") is not None:
         Gimp.context_set_brush_size(float(args["size"]))
-    Gimp.context_set_foreground(color(args.get("color", [0.0, 0.0, 0.0])))
     x, y = float(args["x"]), float(args["y"])
     po = Gimp.Path.new(img, f"dab_{uuid.uuid4().hex[:6]}")
     sid = po.bezier_stroke_new_moveto(x, y)
@@ -189,6 +194,8 @@ def cmd_paint_dab(seq, args):
                               Gimp.ImageType.RGBA_IMAGE, 100.0, Gimp.LayerMode.NORMAL)
         img.insert_layer(temp, None, 0)
         temp.edit_stroke_item(po)
+    Gimp.context_pop()
+    Gimp.displays_flush()
     return {"ok": True, "x": x, "y": y}
 
 
@@ -289,6 +296,7 @@ def cmd_text(seq, args):
             tx.merge_to(layers[idx])
         except Exception:
             layers.append(tx)
+    Gimp.displays_flush()
     return {"ok": True}
 
 

@@ -11,7 +11,7 @@ Brush system:
   drop_brush(brush_id)                               → released
   list_brushes()                                     -> [all 58 GIMP brush names]
 """
-VERSION = "20260712.16"
+VERSION = "20260715.17"
 import json, os, sys, uuid, time, traceback
 from gi.repository import Gimp, Gegl, GLib, Gio
 from pathlib import Path
@@ -157,6 +157,8 @@ def cmd_paint_stroke(seq, args):
     
     col = args.get("color", [0.0, 0.0, 0.0])
     
+    Gimp.context_push()
+    
     # Set foreground BEFORE brush — context_set_brush() snapshots foreground!
     col_obj = color(col)
     _set_fg(col_obj)
@@ -165,6 +167,7 @@ def cmd_paint_stroke(seq, args):
     
     strokes = args.get("strokes", [])
     if not strokes:
+        Gimp.context_pop()
         res(seq, error="No strokes"); return
     
     # Create path
@@ -200,6 +203,9 @@ def cmd_paint_stroke(seq, args):
     else:
         img.get_layers()[0].edit_stroke_item(po)
     
+    Gimp.context_pop()
+    Gimp.displays_flush()
+    
     res(seq, ok=True, strokes=len(strokes))
 
 def cmd_paint_dab(seq, args):
@@ -224,6 +230,8 @@ def cmd_paint_dab(seq, args):
     
     col = args.get("color", [0.0, 0.0, 0.0])
     
+    Gimp.context_push()
+    
     # Set foreground BEFORE brush — context_set_brush() snapshots foreground!
     col_obj = color(col)
     _set_fg(col_obj)
@@ -245,10 +253,13 @@ def cmd_paint_dab(seq, args):
     
     d = _drawable(args)
     if d:
-        d.edit_fill(Gimp.FillType.FOREGROUND)
+        Gimp.Drawable.edit_fill(d, Gimp.FillType.FOREGROUND)
     else:
-        img.get_layers()[0].edit_fill(Gimp.FillType.FOREGROUND)
+        Gimp.Drawable.edit_fill(img.get_layers()[0], Gimp.FillType.FOREGROUND)
     _deselect()
+    
+    Gimp.context_pop()
+    Gimp.displays_flush()
     
     res(seq, ok=True, x=x, y=y)
 
@@ -351,6 +362,7 @@ def cmd_text(seq, args):
             top_pos = len(all_layers) - 1
             if all_layers[0] == tl:  # only reorder if it's at the bottom
                 img.reorder_item(tl, None, top_pos)
+            Gimp.displays_flush()
         else:
             res(seq, error="text_font returned None")
             return
